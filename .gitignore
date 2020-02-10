@@ -945,4 +945,5 @@ MigrationBackup/
 
 Books/
 
-outputFile.txt
+word-count.txt
+inverted-index.txt

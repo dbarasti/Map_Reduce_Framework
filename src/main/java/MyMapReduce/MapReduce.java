@@ -1,5 +1,6 @@
 package MyMapReduce;
 
+import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -24,12 +25,13 @@ public abstract class MapReduce<KI, VI, KO, VO> {
         VO currentAcc = null;
         HashMap<KO, VO> map = new HashMap<>();
         int size = sortedDataAsList.size();
-
         for (Pair<KO, VO> pair : sortedDataAsList) {
-            if (currentKey != pair.key) {
-                if (currentKey != null) {
-                    map.put(currentKey, currentAcc);
-                }
+            if (currentKey == null) {
+                currentKey = pair.key;
+                currentAcc = pair.value;
+            }
+            if (currentKey != null && compare(currentKey, pair.key) != 0) {
+                map.put(currentKey, currentAcc);
                 currentKey = pair.key;
                 currentAcc = pair.value;
             } else {

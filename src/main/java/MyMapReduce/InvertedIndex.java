@@ -5,13 +5,14 @@ import com.sun.org.apache.xpath.internal.res.XPATHErrorResources_it;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class InvertedIndex extends MapReduce<String, List<String>, String, Pair<String, Integer>> {
+public class InvertedIndex extends MapReduce<String, List<String>, String, List<Pair<String, Integer>>> {
     private String pathToTxtDir;
 
     InvertedIndex(String directory) {
@@ -32,15 +33,21 @@ public class InvertedIndex extends MapReduce<String, List<String>, String, Pair<
         return readStream;
     }
 
+    /**
+     * @return returns a stream of <word,<filename, linenumber>> */
+
     @Override
-    Stream<Pair<String, Pair<String, Integer>>> map(Pair<String, List<String>> input) {
-        List<Pair<String, Pair<String, Integer>>> mappedInput = new ArrayList<>();
+    Stream<Pair<String, List<Pair<String, Integer>>>> map(Pair<String, List<String>> input) {
+        List<Pair<String, List<Pair<String, Integer>>>> mappedInput = new ArrayList<>();
         int lineNumber = 1;
         for (String s : input.getValue()) {
             List<String> words = Arrays.asList(s.split(" |,|\n|!|$|\\?|\"|\\.|“|'|;|:|\\(|\\)|-|”|’|‘|—"));
-            words = words.stream().filter(w -> w.length() > 3).collect(Collectors.toList());
+            words = words.stream()
+                    .filter(w -> w.length() > 3)
+                    .map(String::toLowerCase)
+                    .collect(Collectors.toList());
             for (String word : words) {
-                mappedInput.add(new Pair<>(word, new Pair<>(input.getKey(), lineNumber)));
+                mappedInput.add(new Pair<>(word, Collections.singletonList(new Pair<>(input.getKey(), lineNumber))));
             }
             lineNumber++;
         }
@@ -53,13 +60,29 @@ public class InvertedIndex extends MapReduce<String, List<String>, String, Pair<
     }
 
     @Override
-    Pair<String, Integer> reduce(Pair<String, Integer> p1, Pair<String, Integer> p2) {
-        return null;
+    List<Pair<String, Integer>> reduce(List<Pair<String, Integer>> p1, List<Pair<String, Integer>> p2) {
+        List<Pair<String, Integer>> reduction = new ArrayList<>(p1);
+        reduction.addAll(p2);
+        return reduction;
     }
 
     @Override
-    void write(Stream<Pair<String, Pair<String, Integer>>> dataToWrite) {
-        dataToWrite.forEach(System.out::println);
+    void write(Stream<Pair<String, List<Pair<String, Integer>>>> dataToWrite) {
+        File outputFile = new File("./inverted-index.txt");
+        PrintStream ps = null;
+        try {
+            ps = new PrintStream(outputFile);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        PrintStream finalPs = ps;
+        dataToWrite.sorted(Comparator.comparing(Pair::getKey))
+                .forEach(p -> p.value.forEach(info -> {
+            assert finalPs != null;
+            finalPs.println(p.getKey() + ", " + info.getKey() + ", " + info.getValue());
+        }));
+        assert ps != null;
+        ps.close();
     }
 
     public static void main(String [] args) {

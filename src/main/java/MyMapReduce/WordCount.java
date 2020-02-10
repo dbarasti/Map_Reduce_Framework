@@ -22,7 +22,7 @@ public class WordCount extends MapReduce<String, List<String>, String, Integer> 
         this.pathToTxtDir = directory;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException {
         String pathToTxtDir = getDirectory();
         new WordCount(pathToTxtDir).run();
     }
@@ -59,6 +59,7 @@ public class WordCount extends MapReduce<String, List<String>, String, Integer> 
         Map<String, Integer> summedWords = input.getValue().stream()
                 .flatMap(line -> Stream.of(line.split(" |,|\n|!|$|\\?|\"|\\.|“|'|;|:|\\(|\\)|-|”|’|‘|—")))
                 .filter(w -> w.length() > 3)
+                .map(String::toLowerCase)
                 .collect(Collectors.groupingBy(Function.identity(), summingInt((e) -> 1)));
         return summedWords.entrySet().stream()
                 .map(e -> new Pair<>(e.getKey(), e.getValue()));
@@ -76,7 +77,7 @@ public class WordCount extends MapReduce<String, List<String>, String, Integer> 
 
     @Override
     void write(Stream<Pair<String, Integer>> dataToWrite) {
-        File outputFile = new File("./outputFile.txt");
+        File outputFile = new File("./word-count.txt");
         try {
             Writer.write(outputFile, dataToWrite);
         } catch (FileNotFoundException e) {

@@ -1,7 +1,5 @@
 package MyMapReduce;
 
-import com.sun.org.apache.xpath.internal.res.XPATHErrorResources_it;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -19,6 +17,24 @@ public class InvertedIndex extends MapReduce<String, List<String>, String, List<
         this.pathToTxtDir = directory;
     }
 
+    public static void main(String[] args) {
+        String pathToTxtDir = getDirectory();
+        new InvertedIndex(pathToTxtDir).run();
+    }
+
+    private static String getDirectory() {
+        System.out.println("Please, define the path for the directory that stores the txt files.\n" +
+                "(Press enter for default lookup of Books dir in root project directory)");
+        Scanner sc = new Scanner(System.in);
+        String pathToTxtDir = sc.nextLine();
+        if (pathToTxtDir.equals("")) {
+            Path currentDir = Paths.get("");
+            pathToTxtDir = currentDir.toAbsolutePath().toString() + "/Books/";
+        }
+
+        return pathToTxtDir;
+    }
+
     @Override
     Stream<Pair<String, List<String>>> read() {
         Path path = Paths.get(pathToTxtDir);
@@ -34,19 +50,19 @@ public class InvertedIndex extends MapReduce<String, List<String>, String, List<
     }
 
     /**
-     * @return returns a stream of <word,<filename, linenumber>> */
-
+     * @return returns a stream of <word,<filename, linenumber>>
+     */
     @Override
     Stream<Pair<String, List<Pair<String, Integer>>>> map(Pair<String, List<String>> input) {
         List<Pair<String, List<Pair<String, Integer>>>> mappedInput = new ArrayList<>();
         int lineNumber = 1;
-        for (String s : input.getValue()) {
-            List<String> words = Arrays.asList(s.split(" |,|\n|!|$|\\?|\"|\\.|“|'|;|:|\\(|\\)|-|”|’|‘|—"));
-            words = words.stream()
+        for (String line : input.getValue()) {
+            List<String> wordsInLine = Arrays.asList(line.split(" |,|\n|!|$|\\?|\"|\\.|“|'|;|:|\\(|\\)|-|”|’|‘|—|_"));
+            wordsInLine = wordsInLine.stream()
                     .filter(w -> w.length() > 3)
                     .map(String::toLowerCase)
                     .collect(Collectors.toList());
-            for (String word : words) {
+            for (String word : wordsInLine) {
                 mappedInput.add(new Pair<>(word, Collections.singletonList(new Pair<>(input.getKey(), lineNumber))));
             }
             lineNumber++;
@@ -78,28 +94,10 @@ public class InvertedIndex extends MapReduce<String, List<String>, String, List<
         PrintStream finalPs = ps;
         dataToWrite.sorted(Comparator.comparing(Pair::getKey))
                 .forEach(p -> p.value.forEach(info -> {
-            assert finalPs != null;
-            finalPs.println(p.getKey() + ", " + info.getKey() + ", " + info.getValue());
-        }));
+                    assert finalPs != null;
+                    finalPs.println(p.getKey() + ", " + info.getKey() + ", " + info.getValue());
+                }));
         assert ps != null;
         ps.close();
-    }
-
-    public static void main(String [] args) {
-        String pathToTxtDir = getDirectory();
-        new InvertedIndex(pathToTxtDir).run();
-    }
-
-    private static String getDirectory() {
-        System.out.println("Please, define the path for the directory that stores the txt files.\n" +
-                "(Press enter for default lookup of Books dir in root project directory)");
-        Scanner sc = new Scanner(System.in);
-        String pathToTxtDir = sc.nextLine();
-        if (pathToTxtDir.equals("")) {
-            Path currentDir = Paths.get("");
-            pathToTxtDir = currentDir.toAbsolutePath().toString() + "/Books/";
-        }
-
-        return pathToTxtDir;
     }
 }

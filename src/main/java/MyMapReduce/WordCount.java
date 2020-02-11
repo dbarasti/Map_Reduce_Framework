@@ -57,7 +57,7 @@ public class WordCount extends MapReduce<String, List<String>, String, Integer> 
     @Override
     Stream<Pair<String, Integer>> map(Pair<String, List<String>> input) {
         Map<String, Integer> summedWords = input.getValue().stream()
-                .flatMap(line -> Stream.of(line.split(" |,|\n|!|$|\\?|\"|\\.|“|'|;|:|\\(|\\)|-|”|’|‘|—")))
+                .flatMap(line -> Stream.of(line.split(" |,|\n|!|$|\\?|\"|\\.|“|'|;|:|\\(|\\)|-|”|’|‘|—|_")))
                 .filter(w -> w.length() > 3)
                 .map(String::toLowerCase)
                 .collect(Collectors.groupingBy(Function.identity(), summingInt((e) -> 1)));

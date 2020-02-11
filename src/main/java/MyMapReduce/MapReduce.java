@@ -1,7 +1,8 @@
 package MyMapReduce;
 
-import java.io.FileNotFoundException;
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -20,6 +21,10 @@ public abstract class MapReduce<KI, VI, KO, VO> {
         write(reducedDataAsStream);
     }
 
+    /**
+     * Before reducing I have to group the already ordered keys into groups of equal key.
+     * Then to all the values of each group I have to apply the reduction step.
+     */
     private HashMap<KO, VO> groupByKeyAndReduce(List<Pair<KO, VO>> sortedDataAsList) {
         KO currentKey = null;
         VO currentAcc = null;
@@ -45,7 +50,7 @@ public abstract class MapReduce<KI, VI, KO, VO> {
         return map;
     }
 
-    abstract Stream<Pair<KI, VI>> read() ;
+    abstract Stream<Pair<KI, VI>> read();
 
     abstract Stream<Pair<KO, VO>> map(Pair<KI, VI> input);
 
